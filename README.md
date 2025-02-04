@@ -1,19 +1,22 @@
 # Art Valuation Project
 
-### Install:
-**On Mac:**
+### To install on Mac:
 
     1. python3.12 -m venv venv
     2. source venv/bin/activate
     3. pip install -r requirements.txt
 
+### To run:
+1. Create /data in the root directory
+2. python arnet_to_csv.py
+This creates artnet_results.csv
 
 ### Notes:
-This parses all the artnet pdf pages into a single .csv file (artnet_results). It still needs cleaning within each field, but that is pretty trivial. It would be best to have the variables for the ML models thought out first. If I were to go further with this:
+This parses all the artnet pdf pages into a single .csv file (artnet_results). It still needs some cleaning within each field, but that is pretty trivial. It would be best to have the variables for the ML models thought out first before putting more work into it. If I were to go further with this:
 
-    1. The description field can be parsed separately (whether it was signed makes a big difference and the misc field may not be reliable)
+    1. The description field can be parsed separately (whether it was signed makes a big difference in value, and the misc field may not be reliable)
     2. Some entries from desription are missing. I'd figure out why. I must have missed an edge case. 
-    3. Medium has important key words that should be separately extracted prior to ML (oil, canvas, linen)
+    3. Medium has important key words that should be separately extracted prior to feeding into ML (oil, canvas, linen)
     4. Lots of cleaning to be done in some of the fields (i.e. date has single years sometimes, ranges other times)
     5. Sale Of field has information that can be further parsed: auction house, date, whether it was online, etc. 
     6. Sold for has more information besides price (i.e. Premium or not)
