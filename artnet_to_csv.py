@@ -2,6 +2,8 @@
 Parses artnet pdf pages and extracts the data into a csv file.
 """
 import os
+import re
+from datetime import datetime
 import pandas as pd
 import fitz
 
@@ -104,11 +106,48 @@ def get_artwork_info(doc, start_sep, end_sep):
                     artwork[current_field] += " " + line       
     return artwork
 
+def parse_sale_of_column(entry):
+    """ 
+    Parses each sale_of column entry to extract auction house, sale date, lot number, and online status.
+    """
+    pattern = r"^(.*?):\s*(.*?)\s*\[(Lot\s*[0-9A-Za-z\s]+)\](.*?)$"
+    
+    try:
+        match = re.match(pattern, str(entry))
+        if not match:
+            return pd.Series({
+                'auction_house': None,
+                'sale_date': None,
+                'lot_number': None,
+                'is_online': False
+            })
+        
+        auction_house, date_str, lot_number, description = match.groups()
+        
+        date = datetime.strptime(date_str.strip(), "%A, %B %d, %Y")
+        
+        is_online = bool(re.search(r'online', description, re.IGNORECASE))
+        lot_number = re.sub(r'Lot\s*', '', lot_number).strip()
+        
+        return pd.Series({
+            'auction_house': auction_house.strip(),
+            'sale_date': date,
+            'lot_number': lot_number,
+            'is_online': is_online
+        })
+    except:
+        return pd.Series({
+            'auction_house': None,
+            'sale_date': None,
+            'lot_number': None,
+            'is_online': False
+        })
+
 
 def main():
     pdf_files = [f for f in os.listdir('data') if f.endswith('.pdf')]
     results = []
-    for file in pdf_files:
+    for file in pdf_files: # Loop through all PDF files
         print(f"Processing {file}")
         doc = fitz.open(os.path.join('data',file))
         separators = find_artnet_separators(doc)
@@ -118,6 +157,12 @@ def main():
             artwork = get_artwork_info(doc, start_sep, end_sep)
             results.append(artwork)
     df = pd.DataFrame(results)
+    # Parse the 'Sale of' column to extract auction house, sale date, lot number, and online status:
+    parsed_columns = df['Sale of'].apply(parse_sale_of_column)
+    df['auction_house'] = parsed_columns.apply(lambda x: x.get('auction_house', None), axis=1)
+    df['sale_date'] = parsed_columns.apply(lambda x: x.get('sale_date', None), axis=1)
+    df['lot_number'] = parsed_columns.apply(lambda x: x.get('lot_number', None), axis=1)
+    df['is_online'] = parsed_columns.apply(lambda x: x.get('is_online', False), axis=1)
     df.to_csv('artnet_results.csv', index=False)
 
 
